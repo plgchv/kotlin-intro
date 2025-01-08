@@ -1,164 +1,155 @@
 package org.example
 
-import org.example.geometry2d.Circle
-import org.example.geometry2d.Rectangle
-import org.example.geometry3d.Cylinder
+import java.util.*
+import kotlin.Comparator
+import kotlin.collections.HashSet
+import kotlin.collections.LinkedHashSet
 
-class Button {
-    private var clickCount = 0
+class PrimesGenerator(private val n: Int) : Iterator<Int> {
+    private var count = 0
+    private var current = 1
 
-    fun click() {
-        clickCount++
-        println("Количество нажатий: $clickCount")
-    }
-}
-
-class Balance {
-    private var leftWeight = 0
-    private var rightWeight = 0
-
-    fun addLeft(weight: Int) {
-        leftWeight += weight
+    override fun hasNext(): Boolean {
+        return count < n
     }
 
-    fun addRight(weight: Int) {
-        rightWeight += weight
-    }
-
-    fun result() {
-        when {
-            leftWeight > rightWeight -> println("L")
-            rightWeight > leftWeight -> println("R")
-            else -> println("=")
+    override fun next(): Int {
+        while (true) {
+            current++
+            if (isPrime(current)) {
+                count++
+                return current
+            }
         }
     }
-}
 
-class Bell {
-    private var isDing = true
-
-    fun sound() {
-        if (isDing)
-            println("ding")
-        else
-            println("dong")
-        isDing = !isDing
+    private fun isPrime(num: Int): Boolean {
+        if (num < 2) return false
+        for (i in 2..Math.sqrt(num.toDouble()).toInt())
+            if (num % i == 0) return false
+        return true
     }
 }
 
-class OddEvenSeparator {
-    private val evenNumbers = mutableListOf<Int>()
-    private val oddNumbers = mutableListOf<Int>()
-
-    fun addNumber(number: Int) {
-        if (number % 2 == 0)
-            evenNumbers.add(number)
-        else
-            oddNumbers.add(number)
-    }
-
-    fun even() {
-        println("Чётные: $evenNumbers")
-    }
-
-    fun odd() {
-        println("Нечётные: $oddNumbers")
+data class Human(val firstName: String, val lastName: String, val age: Int) : Comparable<Human> {
+    override fun compareTo(other: Human): Int {
+        return this.firstName.compareTo(other.firstName)
     }
 }
 
-class Table(private val rows: Int, private val cols: Int) {
-    private val table: Array<IntArray> = Array(rows) { IntArray(cols) }
-
-    fun getValue(row: Int, col: Int): Int {
-        return table[row][col]
+class HumanComparatorByLastName : Comparator<Human> {
+    override fun compare(h1: Human, h2: Human): Int {
+        return h1.lastName.compareTo(h2.lastName)
     }
+}
 
-    fun setValue(row: Int, col: Int, value: Int) {
-        table[row][col] = value
-    }
-
-    fun rows(): Int {
-        return rows
-    }
-
-    fun cols(): Int {
-        return cols
-    }
-
-    override fun toString(): String {
-        return table.joinToString("\n") { it.joinToString(" ") }
-    }
-
-    fun average(): Double {
-        val total = table.sumOf { it.sum() }
-        return total.toDouble() / (rows * cols)
-    }
+fun <K, V> swapMap(map: Map<K, V>): Map<V, K> {
+    return map.entries.associate { it.value to it.key }
 }
 
 fun main() {
     // 1
-    val button = Button()
-    for (i in 1..2)
-        button.click()
+    // Создайте массив из N случайных чисел от 0 до 100.
+    val n1 = 10
+    val randomNumbers = IntArray(n1) { (0..100).random() }
+    println("Случайные числа: ${randomNumbers.joinToString(", ")}")
+
+    // На основе массива создайте список List.
+    val numberList = randomNumbers.toList()
+    println("Список: $numberList")
+
+    // Отсортируйте список по возрастанию.
+    val sortedList = numberList.sorted()
+    println("Отсортированный список: $sortedList")
+
+    // Отсортируйте список в обратном порядке.
+    val reversedList = sortedList.reversed()
+    println("Список в обратном порядке: $reversedList")
+
+    // Перемешайте список.
+    val shuffledList = numberList.shuffled()
+    println("Перемешанный список: $shuffledList")
+
+    // Выполните циклический сдвиг на 1 элемент.
+    val cyclicShiftedList = shuffledList.drop(1) + shuffledList.first()
+    println("Циклический сдвиг на 1 элемент: $cyclicShiftedList")
+
+    // Оставьте в списке только уникальные элементы.
+    val uniqueList = shuffledList.distinct()
+    println("Уникальные элементы: $uniqueList")
+
+    // Оставьте в списке только дублирующиеся элементы.
+    val duplicatesList = shuffledList.groupBy { it }.filter { it.value.size > 1 }.flatMap { it.value }
+    println("Дублирующиеся элементы: $duplicatesList")
+
+    // Из списка получите массив.
+    val arrayFromList = shuffledList.toTypedArray()
+    println("Массив из списка: ${arrayFromList.joinToString(", ")}")
+
+    // Посчитайте количество вхождений каждого числа в массив и выведите на экран.
+    val frequencyMap = arrayFromList.groupingBy { it }.eachCount()
+    println("Частота вхождений: $frequencyMap")
+
+
 
     // 2
-    val balance = Balance()
-    balance.addLeft(5)
-    balance.addRight(3)
-    balance.result()
-    balance.addRight(3)
-    balance.result()
-    balance.addLeft(1)
-    balance.result()
+    val n2 = 10
+    val primesGenerator = PrimesGenerator(n2)
+
+    val primesList = mutableListOf<Int>()
+    while (primesGenerator.hasNext()) {
+        primesList.add(primesGenerator.next())
+    }
+
+    println("Первые $n2 простых чисел: $primesList")
+    println("Первые $n2 простых чисел в обратном порядке: ${primesList.reversed()}")
+
+
 
     // 3
-    val bell = Bell()
-    for (i in 1..3)
-        bell.sound()
+    val humans = listOf(
+        Human("Name1", "Surname1", 30),
+        Human("Name2", "Surname2", 25),
+        Human("Name3", "Surname3", 35)
+    )
+
+    // HashSet
+    val hashSet = HashSet(humans)
+    println("HashSet: $hashSet")
+
+    // LinkedHashSet
+    val linkedHashSet = LinkedHashSet(humans)
+    println("LinkedHashSet: $linkedHashSet")
+
+    // TreeSet
+    val treeSet = TreeSet(humans)
+    println("TreeSet: $treeSet")
+
+    // TreeSet с компаратором
+    val treeSetWithComparator = TreeSet(HumanComparatorByLastName())
+    treeSetWithComparator.addAll(humans)
+    println("TreeSet с компаратором по фамилии: $treeSetWithComparator")
+
+    // TreeSet с анонимным компаратором по возрасту
+    val treeSetWithAnonymousComparator = TreeSet<Human>(compareBy { it.age })
+    treeSetWithAnonymousComparator.addAll(humans)
+    println("TreeSet с анонимным компаратором по возрасту: $treeSetWithAnonymousComparator")
+
 
     // 4
-    val separator = OddEvenSeparator()
-    for (i in 1..3)
-        separator.addNumber(i)
-    separator.even()
-    separator.odd()
+    val text = "Test test TEST. Hello world"
+    val words = text.split("\\W+".toRegex()).map { it.lowercase() }
+    val frequencyMap2 = mutableMapOf<String, Int>()
+
+    for (word in words)
+        frequencyMap2[word] = frequencyMap2.getOrDefault(word, 0) + 1
+
+    println("Частота слов: $frequencyMap2")
+
 
     // 5
-    val table = Table(2, 3)
-    table.setValue(0, 0, 1)
-    table.setValue(0, 1, 2)
-    table.setValue(1, 0, 3)
-    table.setValue(1, 1, 4)
-    println(table)
-    println("Среднее: ${table.average()}")
-
-    // 6
-    try {
-        val circle = Circle(5.0)
-        println(circle)
-        println("Площадь: ${circle.area()}")
-        println("Периметр: ${circle.perimeter()}")
-        val invalidCircle = Circle(0.0)
-    } catch (e: Exception) {
-        println("Exception $e")
-    }
-
-    try {
-        val rectangle = Rectangle(4.0, 2.0)
-        println(rectangle)
-        println("Площадь: ${rectangle.area()}")
-        println("Периметр: ${rectangle.perimeter()}")
-        val invalidRectangle = Rectangle(-1.0, 2.0)
-    }  catch (e: Exception) {
-        println("Exception $e")
-    }
-
-    try {
-        val cylinder = Cylinder(3.0, 5.0)
-        println(cylinder)
-        println("Объем: ${cylinder.volume()}")
-        val invalidCylinder = Cylinder(0.0, 5.0)
-    } catch (e: Exception) {
-        println("Exception $e")
-    }
+    val originalMap = mapOf(1 to "one", 2 to "two", 3 to "three")
+    val swappedMap = swapMap(originalMap)
+    println("Ориг: $originalMap")
+    println("Свап: $swappedMap")
 }
