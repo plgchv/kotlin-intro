@@ -1,88 +1,91 @@
 package org.example
 
-import com.google.gson.Gson
-import java.io.FileReader
-import java.util.function.Supplier
-import kotlin.math.ceil
+import java.util.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 
-data class Visitor (
-    val name: String,
-    val surname: String,
-    val phone: String,
-    val subscribed: Boolean,
-    val favouriteBooks: List<Book>
-)
+data class Order(val id: Int, val shoeType: String, val quantity: Int)
 
-data class Book (
-    val name: String,
-    val author: String,
-    val publishingYear: Int,
-    val isbn: String,
-    val publisher: String,
-)
+class ShoeWarehouse : Object() {
+    private val logger: Logger = LoggerFactory.getLogger(ShoeWarehouse::class.java)
 
-data class Sms(var phone: String? = null, var message: String? = null)
+    companion object {
+        val shoeTypes: List<String> = listOf("Кроссовки", "Ботинки", "Туфли")
+    }
+
+    private val orders: LinkedList<Order> = LinkedList()
+    private val maxOrders = 10
+
+    @Synchronized
+    fun receiveOrder(order: Order) {
+        while (orders.size >= maxOrders)
+            wait()
+        orders.add(order)
+        logger.info("Получен заказ: $order")
+        notifyAll()
+    }
+
+    @Synchronized
+    fun fulfillOrder(): Order {
+        while (orders.isEmpty())
+            wait()
+        val order = orders.poll()
+        logger.info("Исполнен заказ: $order")
+        notifyAll()
+        return order
+    }
+}
+
+class Producer(private val warehouse: ShoeWarehouse, private val orderCount: Int) : Runnable {
+    override fun run() {
+        for (i in 1..orderCount) {
+            val shoeType = ShoeWarehouse.shoeTypes.random()
+            val order = Order(i, shoeType, (1..10).random())
+            warehouse.receiveOrder(order)
+            Thread.sleep(500)
+        }
+    }
+}
+
+class Consumer(private val warehouse: ShoeWarehouse, private val ordersToFulfill: Int) : Runnable {
+    override fun run() {
+        repeat(ordersToFulfill) {
+            warehouse.fulfillOrder()
+            Thread.sleep(1500)
+        }
+    }
+}
 
 fun main() {
-    val visitors = Gson().fromJson(FileReader("src/main/resources/books.json"), Array<Visitor>::class.java).toList()
-    val booksSupplier = Supplier { visitors.stream().flatMap { it.favouriteBooks.stream() }}
-    val uniqueBooksSupplier = Supplier { booksSupplier.get().distinct() }
-    println("1. Вывести список посетителей и их количество.\n" +
-            "2. Вывести список и количество книг, добавленных посетителями в избранное, без повторений.\n" +
-            "3. Отсортировать по году издания и вывести список книг.\n" +
-            "4. Проверить, есть ли у кого-то в избранном книга автора 'Jane Austen'\n" +
-            "5. Вывести максимальное число добавленных в избранное книг.\n" +
-            "6. Создать класс sms-сообщения с полями: номер телефона и сообщение. Далее сгруппируйте посетителей библиотеки, согласившихся на рассылку, по категориям\n")
-    print("> ")
-
-    val choice = readln().toInt()
-    when (choice) {
-        1 -> {
-            visitors.stream().forEach { println(it) }
-            println(visitors.stream().count())
+    // 1
+    val evenThread = object : Thread() {
+        override fun run() {
+            for (i in 0 until 10 step 2)
+                println("Четное число: $i")
         }
-        2 -> {
-            uniqueBooksSupplier.get().forEach { println(it) }
-            println(uniqueBooksSupplier.get().count())
-        }
-        3 -> uniqueBooksSupplier.get().sorted(Comparator.comparingInt(Book::publishingYear)).forEach { println(it) }
-        4 -> {
-            visitors.stream().forEach {
-                if (it.favouriteBooks.stream().anyMatch { book -> book.author == "Jane Austen" })
-                    println(it)
-            }
-        }
-        5 -> println(visitors.stream().map { it.favouriteBooks.count() }.toList().max())
-        6 -> {
-            var sms: Sms
-            val bookworms = mutableListOf<Sms>()
-            val readmores = mutableListOf<Sms>()
-            val fines = mutableListOf<Sms>()
-
-            val favBooksAvg = ceil(booksSupplier.get().count().toDouble() / visitors.count())
-            visitors.stream().filter { it.subscribed }.forEach {
-                sms = Sms()
-                sms.phone = it.phone
-                if (it.favouriteBooks.count() > favBooksAvg) {
-                    sms.message = "you are a bookworm"
-                    bookworms.add(sms)
-                }
-                else if(it.favouriteBooks.count() < favBooksAvg) {
-                    sms.message = "read more"
-                    readmores.add(sms)
-                }
-                else {
-                    sms.message = ("fine")
-                    fines.add(sms)
-                }
-            }
-            println("Bookworms")
-            bookworms.stream().forEach { println(it) }
-            println("\nReadmores")
-            readmores.stream().forEach { println(it) }
-            println("\nFines")
-            fines.stream().forEach { println(it) }
-        }
-        else -> println("Wrong choice. Try again")
     }
+
+    val oddThread = Thread {
+        for (i in 1 until 10 step 2)
+            println("Нечетное число: $i")
+    }
+
+    evenThread.start()
+    oddThread.start()
+
+    // 2
+    val warehouse = ShoeWarehouse()
+    val totalOrders = 20
+
+    val producer = Producer(warehouse, totalOrders)
+    val producerThread = Thread(producer)
+    producerThread.start()
+
+    val consumerCount = totalOrders / 5
+    repeat(consumerCount) {
+        val consumer = Consumer(warehouse, 5)
+        val consumerThread = Thread(consumer)
+        consumerThread.start()
+    }
+    producerThread.join()
 }
